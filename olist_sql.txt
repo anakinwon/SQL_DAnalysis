@@ -1,0 +1,99 @@
+
+drop table if exists product_t;
+
+-- 원본 products에는 product_category_name이 없는 product_id가 있음. 이들은 모두 products_t에서 모두 제외. 
+create table products_t
+as
+select product_id, case when product_category_name_english is null then a.product_category_name
+						else product_category_name_english end as product_category_name
+from products a join product_category_name b
+on a.product_category_name = b.product_category_name;
+
+-- product_category_name이 없는 product_id들은 order_items에서 모두 삭제. 
+drop table if exists order_items_t;
+
+create table order_items_t
+as
+select a.* from order_items a, products b 
+where a.product_id = b.product_id ;
+
+create table daily_sales as
+with temp_01 as 
+(
+	select a.customer_id, order_approved_at, b.product_id, b.seller_id, b.price, b.freight_value
+	from orders a join order_items b
+	on a.order_id = b.order_id
+)
+select product_id, customer_id, date_trunc('day', order_approved_at) as time_id, seller_id
+	, count(*) quantity_sold, sum(price) amount_sold, sum(freight_value) amount_freight
+from temp_01 group by product_id, customer_id, date_trunc('day', order_approved_at), seller_id;
+
+
+
+-- 상품 카테고리별 총 판매 금액. 
+select b.product_category_name, sum(price) amount_sold 
+from order_items_t a, products_t b
+where a.product_id = b.product_id
+group by b.product_category_name;
+
+-- 상품 카테고리별 일별 총 판매 금액. 
+select c.product_category_name, date_trunc('day', b.order_approved_at)
+	, sum(price) amount_sold 
+from order_items_t a, orders b, products_t c
+where a.order_id = b.order_id  
+and a.product_id = c.product_id
+group by c.product_category_name, date_trunc('day', b.order_approved_at)
+order by 1, 2;
+
+-- 상품 카테고리 월별 총 판매 금액. 
+select c.product_category_name, date_trunc('month', b.order_approved_at)
+	, sum(price) amount_sold 
+from order_items_t a, orders b, products_t c
+where a.order_id = b.order_id  
+and a.product_id = c.product_id
+group by c.product_category_name, date_trunc('month', b.order_approved_at)
+order by 1, 2;
+
+
+-- 매출이 높은 상품을 rank()로 보기
+with temp_01 as (
+	select b.product_category_name as prd_cat_name, sum(price) amount_sold 
+	from order_items_t a, products_t b
+	where a.product_id = b.product_id
+	group by b.product_category_name
+)
+select prd_cat_name, amount_sold
+	, rank() over (order by amount_sold) as rank_01
+	, rank() over (order by amount_sold desc) as rank_02
+from temp_01;
+
+
+
+-- 세자리 미만 판매액은 절삭 후 rank, dense_rank, row_number 부여
+with temp_01 as (
+	select b.product_category_name as prd_cat_name, trunc(sum(price), -3) amount_sold 
+	from order_items_t a, products_t b
+	where a.product_id = b.product_id
+	group by b.product_category_name
+)
+select prd_cat_name, amount_sold
+	, rank() over (order by amount_sold) as rank_01
+	, dense_rank() over (order by amount_sold desc) as dense_rank_01
+	, row_number() over (order by amount_sold desc) as rnum_01
+from temp_01;
+
+
+-- fashion_childrens_clothes, fashio_female_clothing 카테고리에서 카테고리별 매출액 우선순위 
+with temp_01 as ( 
+	select c.product_category_name, date_trunc('month', b.order_approved_at) as sale_month
+		, sum(price) amount_sold 
+	from order_items_t a, orders b, products_t c
+	where a.order_id = b.order_id  
+	and a.product_id = c.product_id
+	and c.product_category_name in ('fashion_childrens_clothes', 'fashio_female_clothing')
+	group by c.product_category_name, date_trunc('month', b.order_approved_at)
+)
+select product_category_name,  sale_month, amount_sold 
+	, row_number() over (partition by product_category_name order by amount_sold desc) rnum 
+from temp_01;
+
