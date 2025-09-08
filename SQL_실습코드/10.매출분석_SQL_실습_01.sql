@@ -26,18 +26,21 @@ step 2: step 1의 집합에서 전체 매출액을 analytic으로 구한 뒤에 
 *************************************/
 with 
 temp_01 as (
-select d.category_name, to_char(date_trunc('month', order_date), 'yyyymm') as month_day
-	, sum(amount) as sum_amount, count(distinct a.order_id) as monthly_ord_cnt
-from nw.orders a
+select d.category_name
+     , to_char(date_trunc('month', order_date), 'yyyymm') as month_day
+	 , sum(amount) as sum_amount
+	 , count(distinct a.order_id) as monthly_ord_cnt
+  from nw.orders a
 	join nw.order_items b on a.order_id = b.order_id
-	join nw.products c on b.product_id = c.product_id 
-    join nw.categories d on c.category_id = d.category_id
-group by d.category_name, to_char(date_trunc('month', order_date), 'yyyymm')
+	join nw.products c    on b.product_id = c.product_id
+    join nw.categories d  on c.category_id = d.category_id
+ group by d.category_name
+        , to_char(date_trunc('month', order_date), 'yyyymm')
 )
 select *
-	, sum(sum_amount) over (partition by month_day) as month_tot_amount
-	, round(sum_amount / sum(sum_amount) over (partition by month_day), 3) as month_ratio
-from temp_01;
+     , sum(sum_amount) over (partition by month_day) as month_tot_amount
+     , round(sum_amount / sum(sum_amount) over (partition by month_day), 3) as month_ratio
+  from temp_01;
 
 /************************************
 상품별 전체 매출액 및 해당 상품 카테고리 전체 매출액 대비 비율, 해당 상품카테고리에서 매출 순위
@@ -83,6 +86,10 @@ select month_day, sum_amount
 	, sum(sum_amount) over (partition by date_trunc('quarter', month_day) order by month_day) as cume_quarter_amount
 from temp_01;
 
+
+
+
+
 /************************************************
  * 5일 이동 평균 매출액 구하기. 매출액의 경우 주로 1주일 이동 평균 매출을 구하나 데이터가 토,일 매출이 없음.  
  *************************************************/
@@ -119,6 +126,11 @@ select d_day, sum_amount, rnum
 	, case when rnum < 5 then Null
 	       else m_avg_5days end as m_avg_5days
 from temp_02;
+
+
+
+
+
 
 /************************************************
  * 5일 이동 가중평균 매출액 구하기. 당일 날짜에서 가까운 날짜일 수록 가중치를 증대. 
