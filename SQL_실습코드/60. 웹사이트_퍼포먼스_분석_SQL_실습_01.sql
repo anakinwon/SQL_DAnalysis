@@ -1,3 +1,21 @@
+/*
+    <Hits for EVENT or PAGE>
+     0 : 홈페이지 (Unknown)
+     1 : 상품 목록 선택 (Click through of product lists)
+     2 : 상품 상세 선택 (Product detail views)
+     3 : 카트에 상품 추가 (Add Products to cart)
+     4 : 카트에서 상품 제거 (Remove Product from the cart)
+     5 : 결제 시작 (Check out)
+     6 : 구매 완료 (Completed Purchase)
+     7 : 환불 (Refund of Purchase)
+     8 : 결제 옵션 선택 (Checkout Options)
+
+     이 중 1, 3, 4가 주로 EVENT로 발생
+     0, 2, 5, 6 은 주로  PAGE로 발생
+
+ */
+
+
 /************************************
 Hit수가 가장 많은 상위 5개 페이지(이벤트 포함)와 세션당 최대, 평균, 4분위 페이지/이벤트 Hit수
 *************************************/

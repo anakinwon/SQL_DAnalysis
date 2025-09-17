@@ -153,21 +153,17 @@ from temp_01 a
 	--join temp_01 b on b.rnum between a.rnum - 4 and a.rnum;
 )
 select d_day
-	, avg(sum_amount_back) as m_avg_5days
-	-- sum을 건수인 5로 나누면 평균이 됨. 
-	, sum(sum_amount_back)/5 as m_avg_5days_01
-	-- 가중 이동 평균을 구하기 위해 가중치 값에 따라 sum을 구함. 
+	, avg(sum_amount_back)                                                as m_avg_5days
+	, sum(sum_amount_back)/5                                              as m_avg_5days_01    -- sum을 건수인 5로 나누면 평균이 됨.
 	, sum(case when rnum - rnum_back = 4 then 0.5 * sum_amount_back
 	           when rnum - rnum_back in (3, 2, 1) then sum_amount_back
 	           when rnum - rnum_back = 0 then 1.5 * sum_amount_back 
-	      end) as m_weighted_sum
-	-- 위에서 구한 가중치 값에 따른 sum을 5로 나눠서 가중 이동 평균을 구함. 
-	, sum(case when rnum - rnum_back = 4 t해en 0.5 * sum_amount_back
+	      end)                                                            as m_weighted_sum    -- 가중 이동 평균을 구하기 위해 가중치 값에 따라 sum을 구함.
+	, sum(case when rnum - rnum_back = 4 then 0.5 * sum_amount_back
 		   when rnum - rnum_back in (3, 2, 1) then sum_amount_back
 		   when rnum - rnum_back = 0 then 1.5 * sum_amount_back 
-	      end) / 5 as m_w_avg_sum
-        -- 5건이 안되는 초기 데이터는 삭제하기 위해서임.  
-	, count(*) as cnt
+	      end) / 5                                                        as m_w_avg_sum       -- 위에서 구한 가중치 값에 따른 sum을 5로 나눠서 가중 이동 평균을 구함.
+	, count(*)                                                            as cnt               -- 5건이 안되는 초기 데이터는 삭제하기 위해서임.
 from temp_02
 group by d_day
 having count(*) = 5
