@@ -100,6 +100,12 @@ group by bucket
 order by bucket
 )
 select * from temp_04;
+
+
+
+
+
+
 /************************************
 월별 사용자 평균 주문 건수 
 *************************************/
@@ -243,6 +249,11 @@ select user_ntile
 from temp_02
 group by user_ntile
 order by 1;
+
+
+
+
+
 
 /************************************
 order별/고객별로 특정 상품 주문시 함께 가장 많이 주문된 다른 상품 추출하기

@@ -38,21 +38,27 @@ select max(hits_by_sess), avg(hits_by_sess), min(hits_by_sess), count(*) as cnt
 	, percentile_disc(0.50) within group(order by hits_by_sess) as percentile_50
 	, percentile_disc(0.75) within group(order by hits_by_sess) as percentile_75
 	, percentile_disc(0.80) within group(order by hits_by_sess) as percentile_80
-	, percentile_disc(1.0) within group(order by hits_by_sess) as percentile_100
+	, percentile_disc(0.90) within group(order by hits_by_sess) as percentile_90
+	, percentile_disc(1.00) within group(order by hits_by_sess) as percentile_100
 from temp_01;
+
+
+
 
 /************************************
 과거 30일간 일별 page hit 건수 및 30일 평균 일별 page hit
 *************************************/
 
-select date_trunc('day', b.visit_stime)::date as d_day, count(*) as page_cnt
-	  -- group by가 적용된 결과 집합에 analytic avg()가 적용됨. 
-	, round(avg(count(*)) over (), 2) as avg_page_cnt
-from ga.ga_sess_hits a
+select date_trunc('day', b.visit_stime)::date as d_day
+     , count(*) as page_cnt
+	 , round(avg(count(*)) over (), 2)        as avg_page_cnt       -- group by가 적용된 결과 집합에 analytic avg()가 적용됨.
+  from ga.ga_sess_hits a
 	join ga.ga_sess b on a.sess_id = b.sess_id
-where b.visit_stime >= (:current_date - interval '30 days') and b.visit_stime < :current_date
-and a.hit_type = 'PAGE'
-group by date_trunc('day', b.visit_stime)::date;
+ where b.visit_stime >= (:current_date - interval '30 days')
+   and b.visit_stime < :current_date
+   and a.hit_type = 'PAGE'
+ group by date_trunc('day', b.visit_stime)::date;
+
 
 /************************************
  과거 한달간 페이지별 조회수와 순 페이지(세션 고유 페이지) 조회수
@@ -117,6 +123,13 @@ select a.page_path, page_cnt, unique_page_cnt
 from temp_01 a
 	join temp_02 b on a.page_path = b.page_path
 order by 2 desc;
+
+
+
+
+
+
+
 
 
 /************************************
@@ -202,8 +215,16 @@ from temp_01
 group by page_path order by 2 desc;
 
 
+
+
+
+
+
+
+
 /************************************
-ga_sess_hits 테이블에서 개별 session 별로 진입 페이지(landing page)와 종료 페이지(exit page), 그리고 해당 page의 종료 페이지 여부 컬럼을 생성.
+ga_sess_hits 테이블에서 개별 session 별로
+진입 페이지(landing page)와 종료 페이지(exit page), 그리고 해당 page의 종료 페이지 여부 컬럼을 생성.
 종료 페이지 여부는 반드시 hit_type이 PAGE일 때만 True임. 
 *************************************/
 
